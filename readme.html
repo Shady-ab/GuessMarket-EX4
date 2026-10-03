@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Guess Market - Exercise 4 (Web client)</title>
+<style>
+  body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; line-height: 1.35; }
+  h1 { font-size: 20pt; color: #1F4E79; margin-bottom: 4pt; }
+  h2 { font-size: 14pt; color: #1F4E79; border-bottom: 1px solid #9DC3E6; margin-top: 16pt; }
+  h3 { font-size: 12pt; color: #2E75B6; margin-top: 10pt; }
+  table { border-collapse: collapse; width: 100%; margin: 4pt 0 8pt 0; }
+  th, td { border: 1px solid #A6A6A6; padding: 3pt 6pt; vertical-align: top; font-size: 10pt; }
+  th { background: #DDEBF7; text-align: left; }
+  code { font-family: Consolas, monospace; font-size: 9.5pt; }
+  .url { background: #E2EFDA; border: 1px solid #70AD47; padding: 6pt 10pt; font-size: 13pt; }
+</style>
+</head>
+<body>
+
+<h1>Guess Market &ndash; Exercise 4 (Web client)</h1>
+
+<h2>Submitters</h2>
+<table>
+  <tr><th>Name</th><th>ID</th><th>Email</th></tr>
+  <tr><td>Shady Aboarya</td><td>325556835</td><td>shadyaburaya04@gmail.com</td></tr>
+  <tr><td>Abed Alqader Wattad</td><td>213726094</td><td>shadyaburaya04@gmail.com</td></tr>
+</table>
+<p><b>GitHub repository:</b> <a href="https://github.com/Shady-ab/GuessMarket-EX4">https://github.com/Shady-ab/GuessMarket-EX4</a>
+(the server it works with: <a href="https://github.com/Shady-ab/GuessMarket-EX3">https://github.com/Shady-ab/GuessMarket-EX3</a>)</p>
+
+<h2>How to run the web client</h2>
+<ol>
+  <li>Start Tomcat with <code>GuessMarket.war</code> from Exercise 3, exactly as before (nothing changes on the server side).
+      The server is expected at <code>http://localhost:8080/GuessMarket</code>.</li>
+  <li>Double-click <code>GuessMarketWeb\run.bat</code>. It needs only Node.js (no <code>npm install</code> &ndash; the client
+      has no npm dependencies). A console window opens and stays open while the web client is used; the browser opens automatically.</li>
+  <li>If the browser did not open, go to:</li>
+</ol>
+<p class="url"><b>http://localhost:3000</b></p>
+<p>To log in as two different users at the same time, use two different browsers (for example Chrome and Edge) or a normal
+window and a private/incognito window. Tabs of the same browser share one session cookie, so they are the same user.</p>
+<p>Optional: if port 3000 is taken, run <code>set GM_WEB_PORT=3001</code> and then <code>run.bat</code> from the same console,
+and open <code>http://localhost:3001</code>. A server on another address can be set with <code>GM_SERVER</code>
+(default <code>http://localhost:8080</code>).</p>
+
+<h2>What the web client supports</h2>
+<ul>
+  <li><b>Login</b> &ndash; user name only, exactly as in the JavaFX client. A name that is currently logged in is rejected
+      with the server's message and the user can try again. Reloading the page keeps the user logged in.</li>
+  <li><b>Events screen</b> &ndash; the same layout as the JavaFX client: on the left the filter line (method, status,
+      commission, only my MM events) and the table of all events uploaded by the JavaFX clients; on the right
+      &quot;Event details and trade&quot;: details, one box per option (order book with bids/asks, or LMSR price bar),
+      participations and trade history, and the actions Participate / Trade, Open and Close (market maker only).
+      The trade dialogs show the market data, the shares the user holds and, for LMSR, the estimated cost and commission.</li>
+  <li><b>User screen</b> &ndash; name, balance, blocked state, deposit; my events and my involvement in the selected one;
+      the account transactions (one line per action, including commissions received); all other users with balance,
+      market maker and online state. As required, there is no file upload in the web client.</li>
+  <li>All data is refreshed by pull every 0.5 seconds, so actions of JavaFX users appear in the browser and vice versa.
+      The chat bonus of Exercise 3 is not part of the web client (as allowed).</li>
+  <li>The page adapts to the window size; on a narrow window the panels are shown one under the other.</li>
+</ul>
+
+<h2>Technical design</h2>
+<ul>
+  <li>Plain HTML, CSS and JavaScript (no framework, no build step), in <code>GuessMarketWeb\public</code>.</li>
+  <li><code>server.js</code> is a small Node.js server that uses only built-in modules. It serves the web pages and forwards
+      every request under <code>/GuessMarket/</code> to the existing Tomcat server unchanged. This way the browser sees one
+      origin, the session cookie works as usual, and the Tomcat server and its setup are not changed at all
+      (no CORS configuration was needed).</li>
+  <li>The web client uses exactly the same endpoints, parameters and JSON as the JavaFX client:
+      <code>/login</code>, <code>/logout</code>, <code>/events</code>, <code>/event</code>, <code>/event/open</code>,
+      <code>/event/close</code>, <code>/event/buy</code>, <code>/event/order</code>, <code>/me</code>,
+      <code>/users</code>, <code>/deposit</code>.</li>
+  <li>Polling is done per data type (events, selected event, my account, users); a poll is skipped while the previous one is
+      still running, the screen is redrawn only when the data changed, and the ledger is fetched as a delta (only new lines).</li>
+  <li>All text from the server is HTML-escaped before it is shown (user and event names come from other users).</li>
+</ul>
+
+<table>
+  <tr><th>File</th><th>Role</th></tr>
+  <tr><td><code>run.bat</code></td><td>Checks that Node.js exists, starts <code>server.js</code> and opens the browser.</td></tr>
+  <tr><td><code>server.js</code></td><td>Static file server and proxy to the Guess Market server.</td></tr>
+  <tr><td><code>public/index.html</code></td><td>Page structure: login, top bar, Events and My account screens, dialog area.</td></tr>
+  <tr><td><code>public/app.js</code></td><td>API calls, polling, rendering of the screens, trade / close dialogs, deposit.</td></tr>
+  <tr><td><code>public/app.css</code></td><td>Look of the client (matching the JavaFX client) and the layout for small screens.</td></tr>
+</table>
+
+<h2>Working with AI tools</h2>
+
+<h3>Which tool did we choose, and why? Did we try others?</h3>
+<p>We worked with <b>Cursor</b> (an editor with a built-in AI agent). The agent can read the whole project, so it could see
+the server code and the JSON objects of Exercise 3 and build the web client against the real API instead of guessing it.
+It can also run commands and open the page in a browser tab, so it tested its own work. Earlier in the course
+(Exercise 1) we used ChatGPT, where code had to be copied back and forth by hand; Cursor was much more convenient for a
+project with many files.</p>
+
+<h3>Where did the AI not &quot;deliver&quot; and we had to step in?</h3>
+<ul>
+  <li><b>Understanding the requirements.</b> The AI writes code well, but we had to point out the constraints that are easy to
+      miss: the web client must not change the Tomcat server or how it is started, the checker may only be asked to have
+      Node.js, and the web client does not need file upload or the chat. Because of the first constraint we chose the
+      &quot;Node proxy&quot; design instead of putting the pages into the WAR.</li>
+  <li><b>Testing with several users.</b> The AI tested the flows itself, but checking two users at the same time (JavaFX and
+      browser together, a name that is already logged in, a session that ends) needed us to think about the scenarios.
+      This is how we noticed that two tabs of the same browser share the session cookie, which we documented above.</li>
+  <li><b>Small mistakes in test scripts.</b> A PowerShell test script written by the AI read an event id wrongly, so the
+      following test steps failed; the AI found and fixed it after looking at the output.</li>
+</ul>
+
+<h3>Was there a bug or requirement the AI could not solve?</h3>
+<p>No requirement of this exercise remained unsolved. The problems we met were solved after one or two more rounds of prompts
+and testing. In Exercise 3 (JavaFX) there was one case where an automatic test tool of the AI sent keystrokes to the wrong
+window; we stopped that approach and the tests were changed to work without any keyboard or mouse automation.</p>
+
+<h3>How much of the work was done by the AI alone?</h3>
+<p>Almost all of the web client code (we estimate about 90&ndash;95%) was written by the AI from our prompts. Our part was
+defining what to build and the constraints, deciding on the design, reviewing the screens against the JavaFX client,
+and testing it ourselves with the JavaFX client and the browser side by side. We did need to understand what was
+happening (sessions and cookies, the proxy, polling) to give the right instructions and to check the result.</p>
+
+<h3>How long did it take, and how long would it take without AI?</h3>
+<p>With the AI the web client took a few hours including testing and this document. Without AI, and without prior
+front-end knowledge, we estimate it would have taken us two to three weeks: learning HTML, CSS and JavaScript,
+the browser's fetch API and cookies, and building and debugging the screens.</p>
+
+<h3>Did we have prior front-end knowledge?</h3>
+<p>Only basic knowledge of HTML. It helped a little in reading the generated code and in describing what we wanted to see
+on the screen, but the exercise could have been done without it.</p>
+
+<h3>Was the AI-driven style fun compared with the rest of the course?</h3>
+<p>Yes. It was fast and it was satisfying to see a full working web client so quickly. On the other hand we felt less
+&quot;ownership&quot; of the code than in the exercises we wrote ourselves, and we had to make sure we understand what
+the AI did before submitting it.</p>
+
+</body>
+</html>
